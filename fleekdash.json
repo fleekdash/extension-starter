@@ -1,0 +1,30 @@
+{
+  "$schema": "./contracts/schema/fleekdash-manifest.schema.json",
+  "kind": "app",
+  "id": "extension-starter",
+  "name": "Extension Starter",
+  "description": "Reference FleekDash extension — one iframe app route, one settings field, typed SDK usage.",
+  "version": "0.1.0",
+  "author": "FleekDash",
+  "author_uri": "https://fleekdash.com",
+  "icon": "sparkles",
+  "category": "developer",
+  "requires": {
+    "wp": "6.5",
+    "php": "8.0",
+    "fleekdash": "2.6.7"
+  },
+  "settings": {
+    "welcome_text": {
+      "type": "string",
+      "label": "Welcome text",
+      "description": "Shown on the starter app page — demonstrates getIntegrationSettings().",
+      "default": "Hello from FleekDash"
+    }
+  },
+  "tags": [
+    "starter",
+    "template",
+    "reference"
+  ]
+}

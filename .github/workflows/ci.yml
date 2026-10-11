@@ -1,0 +1,33 @@
+# CI for the PUBLIC fleekdash/extension-starter repository.
+# Dormant inside the monorepo — workflows only execute from a repo's root
+# .github/workflows/, and this file syncs to the public repo root where
+# Actions are free. (The private monorepo runs no Actions for billing.)
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install
+      - run: pnpm typecheck
+      - run: pnpm validate:manifest
+      - run: pnpm build
+
+      - name: Check built iframe page exists
+        run: test -f dist/pages/app.html
