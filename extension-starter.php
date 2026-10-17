@@ -21,9 +21,14 @@ const FLEEKDASH_STARTER_REGISTRY = 'FleekDash\Integration\Registry';
 /**
  * Register/re-sync the app route in the FleekDash registry.
  *
- * Transitional model: `fleekdash.json` declares the extension (Hub card,
- * requirements, settings); routes still go through Registry::register()
- * until the manifest absorbs them.
+ * Transitional model: `fleekdash.json` now declares routes too — FleekDash's
+ * app-manifest sync (plugins_loaded@90) re-registers them. This register()
+ * stays during the transition and MUST mirror the manifest on every
+ * forwarded field so both writers produce the identical stored manifest
+ * (parity contract; `requires` key order wp/fleekdash/php is significant
+ * because the discovery layer normalizes it). Once a FleekDash release is
+ * the only registrar you support, this function plus the hooks below can
+ * be deleted entirely.
  */
 function fleekdash_starter_register(): void
 {
@@ -48,19 +53,25 @@ function fleekdash_starter_register(): void
     $registry::register([
         'integration_id' => FLEEKDASH_STARTER_ID,
         'name' => 'Extension Starter',
-        'description' => 'Reference FleekDash extension scaffold.',
+        'description' => 'Reference FleekDash extension — one iframe app route, one settings field, typed SDK usage.',
         'version' => '0.1.0',
         'author' => 'FleekDash',
+        'author_uri' => 'https://fleekdash.com',
         'integration_type' => 'standalone',
         'plugin_file' => \plugin_basename(__FILE__),
         'icon' => 'sparkles',
+        'kind' => 'app',
         'source' => 'external',
+        'source_label' => 'Plugin',
         'category' => 'developer',
+        // Key order matters for the parity hash: the manifest discovery
+        // normalizes `requires` to wp/fleekdash/php — mirror it exactly.
         'requires' => [
             'wp' => '6.5',
-            'php' => '8.0',
             'fleekdash' => '2.6.7',
+            'php' => '8.0',
         ],
+        'tags' => ['starter', 'template', 'reference'],
         'settings_schema' => [
             'welcome_text' => [
                 'type' => 'string',

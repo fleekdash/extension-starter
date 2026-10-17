@@ -14,10 +14,11 @@ mirror (see "Syncing" below).
 
 ```
 extension-starter/
-├── fleekdash.json           kind:app manifest — Hub card, requires, settings
+├── fleekdash.json           kind:app manifest — Hub card, requires, settings,
+│                            declarative `routes` (path, component_url, sandbox)
 ├── extension-starter.php    WP plugin bootstrap — Requires Plugins: fleekdash,
-│                            plugins_loaded → Registry::register (routes),
-│                            activation/deactivation lifecycle
+│                            plugins_loaded → Registry::register (transitional
+│                            parity writer), activation/deactivation lifecycle
 ├── pages/app.html           iframe entry — theme-CSS preload + fleekdash-sdk.js
 ├── src/                     React app — SDK init, THEME_CHANGED listener,
 │                            getIntegrationSettings() + getWordPressData() demos
@@ -43,9 +44,12 @@ host-side goes through `window.FleekDashSDK` — typed here via
 
 - `fleekdash.json` is validated by `ExtensionManifest::validate()` — the
   `$schema` key gives editor autocomplete against the vendored schema.
-- Routes are transitional: today they register via
-  `Registry::register([... 'routes' => [...]])` in PHP (see bootstrap);
-  when the manifest gains `routes`, migrate there.
+- `kind: "app"` manifests declare `routes` directly (see `fleekdash.json`);
+  FleekDash's app-manifest sync registers them automatically. The
+  `Registry::register()` call in `extension-starter.php` is the transitional
+  parity writer: it must produce the identical manifest while both writers
+  run, and can be deleted once a FleekDash release is the only registrar
+  you support.
 - `settings` fields are served to the iframe via
   `sdk.getIntegrationSettings()`; to inject fields into FleekDash's own
   settings sections use `sections` (or `fleekdash_register_settings_fields()`).
