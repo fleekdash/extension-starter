@@ -9,6 +9,7 @@
   "author_uri": "https://fleekdash.com",
   "icon": "sparkles",
   "category": "developer",
+  "integration_type": "standalone",
   "requires": {
     "wp": "6.5",
     "php": "8.0",
@@ -26,5 +27,15 @@
     "starter",
     "template",
     "reference"
+  ],
+  "routes": [
+    {
+      "path": "extension-starter",
+      "title": "Starter App",
+      "component_url": "dist/pages/app.html",
+      "icon": "sparkles",
+      "permissions": ["authenticated"],
+      "sandbox_mode": "none"
+    }
   ]
 }
