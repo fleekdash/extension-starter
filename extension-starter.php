@@ -17,22 +17,33 @@ defined('ABSPATH') || exit;
 
 const FLEEKDASH_STARTER_ID = 'extension-starter';
 const FLEEKDASH_STARTER_REGISTRY = 'FleekDash\Integration\Registry';
+const FLEEKDASH_STARTER_REGISTRAR = 'FleekDash\Extension\ExtensionAppRegistrar';
+
+/**
+ * True when the host FleekDash carries the declarative app registrar —
+ * `fleekdash.json` is then the single writer (manifest sync owns the row,
+ * lifecycle reconcile handles is_active) and every imperative path below
+ * stays dormant. Only released FleekDash builds predating the registrar
+ * still execute the PHP fallback.
+ */
+function fleekdash_starter_has_declarative_registrar(): bool
+{
+    return \class_exists(FLEEKDASH_STARTER_REGISTRAR);
+}
 
 /**
  * Register/re-sync the app route in the FleekDash registry.
  *
- * Transitional model: `fleekdash.json` now declares routes too — FleekDash's
- * app-manifest sync (plugins_loaded@90) re-registers them. This register()
- * stays during the transition and MUST mirror the manifest on every
- * forwarded field so both writers produce the identical stored manifest
- * (parity contract; `requires` key order wp/fleekdash/php is significant
- * because the discovery layer normalizes it). Once a FleekDash release is
- * the only registrar you support, this function plus the hooks below can
- * be deleted entirely.
+ * Legacy fallback for FleekDash releases without the declarative registrar:
+ * this register() still owns the row there, so the payload MUST keep
+ * mirroring the manifest on every forwarded field (`requires` key order
+ * wp/fleekdash/php is significant because the discovery layer normalizes
+ * it). Once your minimum supported FleekDash ships the registrar, delete
+ * this function plus the hooks below entirely.
  */
 function fleekdash_starter_register(): void
 {
-    if (!\class_exists(FLEEKDASH_STARTER_REGISTRY)) {
+    if (fleekdash_starter_has_declarative_registrar() || !\class_exists(FLEEKDASH_STARTER_REGISTRY)) {
         return;
     }
 
@@ -101,6 +112,9 @@ function fleekdash_starter_register(): void
 add_action('plugins_loaded', 'fleekdash_starter_register', 30);
 
 register_activation_hook(__FILE__, static function (): void {
+    if (fleekdash_starter_has_declarative_registrar()) {
+        return; // manifest sync creates/activates the row on the next request
+    }
     fleekdash_starter_register();
     if (\class_exists(FLEEKDASH_STARTER_REGISTRY)) {
         $registry = FLEEKDASH_STARTER_REGISTRY;
@@ -109,6 +123,9 @@ register_activation_hook(__FILE__, static function (): void {
 });
 
 register_deactivation_hook(__FILE__, static function (): void {
+    if (fleekdash_starter_has_declarative_registrar()) {
+        return; // reconcileActivation flips is_active on the next sync
+    }
     if (\class_exists(FLEEKDASH_STARTER_REGISTRY)) {
         $registry = FLEEKDASH_STARTER_REGISTRY;
         $registry::deactivate(FLEEKDASH_STARTER_ID);
