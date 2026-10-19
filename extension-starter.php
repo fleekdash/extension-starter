@@ -115,6 +115,9 @@ register_activation_hook(__FILE__, static function (): void {
     if (fleekdash_starter_has_declarative_registrar()) {
         return; // manifest sync creates/activates the row on the next request
     }
+    if (!\defined('FLEEKDASH_VERSION') || \version_compare((string) FLEEKDASH_VERSION, '2.6.7', '<')) {
+        return;
+    }
     fleekdash_starter_register();
     if (\class_exists(FLEEKDASH_STARTER_REGISTRY)) {
         $registry = FLEEKDASH_STARTER_REGISTRY;
