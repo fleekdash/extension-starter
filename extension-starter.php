@@ -64,7 +64,7 @@ function fleekdash_starter_register(): void
     $registry::register([
         'integration_id' => FLEEKDASH_STARTER_ID,
         'name' => 'Extension Starter',
-        'description' => 'Reference FleekDash extension - one iframe app route, one settings field, typed SDK usage.',
+        'description' => 'The reference FleekDash extension scaffold: one iframe app route, one settings field, typed SDK usage. Rename and build from here.',
         'version' => '0.1.0',
         'author' => 'FleekDash',
         'author_uri' => 'https://fleekdash.com',
