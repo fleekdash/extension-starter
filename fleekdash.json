@@ -23,11 +23,7 @@
       "default": "Hello from FleekDash"
     }
   },
-  "tags": [
-    "starter",
-    "template",
-    "reference"
-  ],
+  "tags": ["starter", "template", "reference"],
   "routes": [
     {
       "path": "extension-starter",
