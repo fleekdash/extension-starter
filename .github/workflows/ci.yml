@@ -1,5 +1,5 @@
 # CI for the PUBLIC fleekdash/extension-starter repository.
-# Dormant inside the monorepo — workflows only execute from a repo's root
+# Dormant inside the monorepo - workflows only execute from a repo's root
 # .github/workflows/, and this file syncs to the public repo root where
 # Actions are free. (The private monorepo runs no Actions for billing.)
 name: CI
