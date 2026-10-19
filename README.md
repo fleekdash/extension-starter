@@ -31,6 +31,8 @@ extension-starter/
 2. **Rename everything.** The checklist:
    - `extension-starter.php` to `<slug>.php`
    - the `extension-starter` id and route path in `fleekdash.json`
+   - the `INTEGRATION_ID` constant in `src/App.tsx` (it must match the new manifest id)
+   - the legacy fallback in `extension-starter.php`: integration id, name, description, tags, settings, and route path
    - `FLEEKDASH_STARTER_*` constants and `fleekdash_starter_*` function names
    - the plugin header (name, description, URIs)
 3. **Build:** `pnpm install && pnpm build`. Confirm `dist/pages/app.html`
