@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       FleekDash Extension Starter
  * Plugin URI:        https://github.com/fleekdash/extension-starter
- * Description:       Reference FleekDash extension — one iframe app route, one settings field, typed SDK usage. Rename ids/prefixes and build from here.
+ * Description:       The reference FleekDash extension scaffold: one iframe app route, one settings field, typed SDK usage. Rename ids/prefixes and build from here.
  * Version:           0.1.0
  * Requires at least: 6.5
  * Requires PHP:      8.0
@@ -20,7 +20,7 @@ const FLEEKDASH_STARTER_REGISTRY = 'FleekDash\Integration\Registry';
 const FLEEKDASH_STARTER_REGISTRAR = 'FleekDash\Extension\ExtensionAppRegistrar';
 
 /**
- * True when the host FleekDash carries the declarative app registrar —
+ * True when the host FleekDash carries the declarative app registrar -
  * `fleekdash.json` is then the single writer (manifest sync owns the row,
  * lifecycle reconcile handles is_active) and every imperative path below
  * stays dormant. Only released FleekDash builds predating the registrar
@@ -50,7 +50,7 @@ function fleekdash_starter_register(): void
     $page = 'dist/pages/app.html';
     if (!\is_file(__DIR__ . '/' . $page)) {
         if (\function_exists('fleekdash_log_error')) {
-            \fleekdash_log_error('[extension-starter] dist build missing — run `pnpm build` in the extension dir.');
+            \fleekdash_log_error('[extension-starter] dist build missing - run `pnpm build` in the extension dir.');
         }
         return;
     }
@@ -64,7 +64,7 @@ function fleekdash_starter_register(): void
     $registry::register([
         'integration_id' => FLEEKDASH_STARTER_ID,
         'name' => 'Extension Starter',
-        'description' => 'Reference FleekDash extension — one iframe app route, one settings field, typed SDK usage.',
+        'description' => 'Reference FleekDash extension - one iframe app route, one settings field, typed SDK usage.',
         'version' => '0.1.0',
         'author' => 'FleekDash',
         'author_uri' => 'https://fleekdash.com',
@@ -76,7 +76,7 @@ function fleekdash_starter_register(): void
         'source_label' => 'Plugin',
         'category' => 'developer',
         // Key order matters for the parity hash: the manifest discovery
-        // normalizes `requires` to wp/fleekdash/php — mirror it exactly.
+        // normalizes `requires` to wp/fleekdash/php - mirror it exactly.
         'requires' => [
             'wp' => '6.5',
             'fleekdash' => '2.6.7',
@@ -87,7 +87,7 @@ function fleekdash_starter_register(): void
             'welcome_text' => [
                 'type' => 'string',
                 'label' => 'Welcome text',
-                'description' => 'Shown on the starter app page — demonstrates getIntegrationSettings().',
+                'description' => 'Shown on the starter app page - demonstrates getIntegrationSettings().',
                 'default' => 'Hello from FleekDash',
             ],
         ],
@@ -102,7 +102,7 @@ function fleekdash_starter_register(): void
                 ),
                 'icon' => 'sparkles',
                 'permissions' => ['authenticated'],
-                // First-party same-origin page — no iframe sandbox flags needed.
+                // First-party same-origin page - no iframe sandbox flags needed.
                 'sandbox_mode' => 'none',
             ],
         ],

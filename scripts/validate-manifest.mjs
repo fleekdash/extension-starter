@@ -23,7 +23,7 @@ const schemaPath = manifest.$schema
   ? resolve(dirname(manifestPath), manifest.$schema)
   : null;
 if (!schemaPath) {
-  console.error("fleekdash.json has no $schema pointer — cannot validate");
+  console.error("fleekdash.json has no $schema pointer - cannot validate");
   process.exit(1);
 }
 
