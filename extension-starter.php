@@ -56,7 +56,7 @@ function fleekdash_starter_register(): void
     }
 
     // Do not expose an integration whose declared FleekDash requirement is unmet.
-    if (\defined('FLEEKDASH_VERSION') && \version_compare((string) FLEEKDASH_VERSION, '2.6.7', '<')) {
+    if (!\defined('FLEEKDASH_VERSION') || \version_compare((string) FLEEKDASH_VERSION, '2.6.7', '<')) {
         return;
     }
 
