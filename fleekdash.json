@@ -3,7 +3,7 @@
   "kind": "app",
   "id": "extension-starter",
   "name": "Extension Starter",
-  "description": "Reference FleekDash extension — one iframe app route, one settings field, typed SDK usage.",
+  "description": "The reference FleekDash extension scaffold: one iframe app route, one settings field, typed SDK usage. Rename and build from here.",
   "version": "0.1.0",
   "author": "FleekDash",
   "author_uri": "https://fleekdash.com",
@@ -19,7 +19,7 @@
     "welcome_text": {
       "type": "string",
       "label": "Welcome text",
-      "description": "Shown on the starter app page — demonstrates getIntegrationSettings().",
+      "description": "Shown on the starter app page. Demonstrates getIntegrationSettings().",
       "default": "Hello from FleekDash"
     }
   },

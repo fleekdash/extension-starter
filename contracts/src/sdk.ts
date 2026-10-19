@@ -1,5 +1,5 @@
 /**
- * Iframe SDK contract — the `window.FleekDashSDK` global injected into
+ * Iframe SDK contract - the `window.FleekDashSDK` global injected into
  * extension iframes. Mirrors `public/sdk/fleekdash-sdk.js` (runtime) and
  * `IntegrationMessageBus` message handling (host side).
  *
@@ -34,7 +34,7 @@ export type SdkEventType = "THEME_CHANGED";
 export type NotificationType = "success" | "error" | "warning" | "info";
 
 export interface FleekDashSdkConfig {
-  /** The extension id — must match the manifest `id`. */
+  /** The extension id - must match the manifest `id`. */
   integration_id: string;
   /** Server-provided nonce (injected into the iframe URL/config). */
   nonce?: string;
@@ -52,7 +52,7 @@ export interface WpDataMutationOptions {
 }
 
 /**
- * Configuration for `openModal()` — the universal Vaul drawer/modal.
+ * Configuration for `openModal()` - the universal Vaul drawer/modal.
  * `url` must be same-origin. Mirrors `IntegrationModalRequest`.
  */
 export interface IntegrationModalConfig {
@@ -143,7 +143,7 @@ declare global {
   }
 }
 
-/** Convenience accessor — same shape extensions already hand-roll. */
+/** Convenience accessor - same shape extensions already hand-roll. */
 import { getBrowserWindow } from "./browser-env";
 
 export function getFleekDashSdk(): FleekDashSdk | undefined {

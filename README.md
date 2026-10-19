@@ -1,79 +1,101 @@
 # FleekDash Extension Starter
 
-The reference scaffold for a FleekDash extension (`kind: app`): a WordPress
-plugin + `fleekdash.json` manifest + one iframe route + one settings field +
-the typed `FleekDashSDK` surface.
+The reference scaffold for a FleekDash extension: a WordPress plugin, a
+`fleekdash.json` manifest, one iframe app route, one settings field, and the
+typed `FleekDashSDK` surface already wired up.
 
-This directory is the **source of truth** for the public
-`fleekdash/extension-starter` repository — it lives inside the monorepo so
-it evolves in the same commit as the contract surface it consumes
-(`@fleekdash/contracts` via `workspace:*`). The public repo is a synced
-mirror (see "Syncing" below).
+**Clone it, rename it, build it, activate it.** You get a working extension
+running inside the FleekDash workspace in about ten minutes, and every line
+is written the way FleekDash expects extensions to be written.
 
 ## What you get
 
 ```
 extension-starter/
-├── fleekdash.json           kind:app manifest — Hub card, requires, settings,
-│                            declarative `routes` (path, component_url, sandbox)
-├── extension-starter.php    WP plugin bootstrap — Requires Plugins: fleekdash,
-│                            legacy Registry::register fallback (dormant when
-│                            the declarative registrar exists) + lifecycle
-├── pages/app.html           iframe entry — theme-CSS preload + fleekdash-sdk.js
-├── src/                     React app — SDK init, THEME_CHANGED listener,
-│                            getIntegrationSettings() + getWordPressData() demos
-├── vite.config.ts           pages/*.html → dist/ build (base "./")
-└── package.json             @fleekdash/contracts for typed SDK + manifest
+├── fleekdash.json           kind:app manifest: Hub card, requirements,
+│                            settings fields, declarative routes
+├── extension-starter.php    WP plugin bootstrap: Requires Plugins header,
+│                            lifecycle hooks, legacy Registry fallback
+├── pages/app.html           iframe entry: theme CSS preload + fleekdash-sdk.js
+├── src/                     React app: SDK init, THEME_CHANGED listener,
+│                            getIntegrationSettings + getWordPressData demos
+├── vite.config.ts           builds pages/*.html into dist/ (base "./")
+├── contracts/               vendored @fleekdash/contracts (typed SDK + manifest)
+└── package.json             pnpm scripts and the contracts dependency
 ```
 
-## Using it (extension authors)
+## From clone to running extension
 
-1. Copy this directory to `wp-content/plugins/<your-slug>/`.
-2. Rename: `extension-starter.php` → `<slug>.php`; replace `extension-starter`,
-   `FLEEKDASH_STARTER_*` constants, `fleekdash_starter_*` functions, and the
-   `extension-starter` route path.
-3. `pnpm install && pnpm build` → `dist/pages/app.html` must exist.
-4. Activate in wp-admin → the Hub card and `#/app/extension-starter` route
-   appear.
+1. **Copy this directory** to `wp-content/plugins/<your-slug>/` on a
+   WordPress site that runs FleekDash.
+2. **Rename everything.** The checklist:
+   - `extension-starter.php` to `<slug>.php`
+   - the `extension-starter` id and route path in `fleekdash.json`
+   - the `INTEGRATION_ID` constant in `src/App.tsx` (it must match the new manifest id)
+   - the legacy fallback in `extension-starter.php`: integration id, name, description, tags, settings, and route path
+   - `FLEEKDASH_STARTER_*` constants and `fleekdash_starter_*` function names
+   - the plugin header (name, description, URIs)
+3. **Build:** `pnpm install && pnpm build`. Confirm `dist/pages/app.html`
+   exists.
+4. **Activate** the plugin in wp-admin. The FleekDash Hub shows your card and
+   `#/app/<your-slug>` mounts your page.
 
-Your UI runs **inside a FleekDash iframe** (`component_url`). Everything
-host-side goes through `window.FleekDashSDK` — typed here via
-`@fleekdash/contracts` (no more hand-copied `fleekdash-sdk-types.ts`).
+Want a faster iteration loop? The [`fleekdash/devkit`](https://github.com/fleekdash/devkit)
+canvas runs your built page inside a mock FleekDash host, with no WordPress
+install needed at all.
 
-## Contract notes
+## How the pieces fit
 
-- `fleekdash.json` is validated by `ExtensionManifest::validate()` — the
-  `$schema` key gives editor autocomplete against the vendored schema.
-- `kind: "app"` manifests declare `routes` directly (see `fleekdash.json`);
-  FleekDash's app-manifest sync registers them automatically. The
-  `Registry::register()` call in `extension-starter.php` is a fallback that
-  only runs on FleekDash builds predating the declarative registrar
-  (`ExtensionAppRegistrar` absent): the two writers never coexist, so
-  parity drift is impossible. It must still mirror the manifest on every
-  forwarded field so old hosts produce the identical stored manifest, and
-  can be deleted entirely once your minimum FleekDash ships the registrar.
-- `settings` fields are served to the iframe via
-  `sdk.getIntegrationSettings()`; to inject fields into FleekDash's own
-  settings sections use `sections` (or `fleekdash_register_settings_fields()`).
-- iframe sandbox: `sandbox_mode: "none"` is right for same-origin
-  first-party pages; use `"strict"` for untrusted/remote content.
+Your UI runs **inside a FleekDash iframe** (the `component_url` on the route).
+Everything host side goes through `window.FleekDashSDK`, typed here via the
+vendored `@fleekdash/contracts` package, so there is no hand copied SDK types
+file to drift out of date.
 
-## Syncing to the public repo
+### `fleekdash.json` is the contract
 
-`fleekdash/extension-starter` is produced by
-`node packages/extension-starter/scripts/sync-public-repo.mjs` — run it
-manually from the monorepo, or dispatch the thin wrapper
-`.github/workflows/sync-extension-starter.yml` once Actions are enabled
-(currently billing-blocked on the private repo). The script:
+The manifest declares your id, routes, settings, requirements and metadata.
+It is validated by FleekDash's `ExtensionManifest::validate()` at runtime and
+by CI here against `contracts/schema/fleekdash-manifest.schema.json`. Keep
+the `$schema` key in place and your editor autocompletes every field.
 
-- mirrors this package to the public repo root (minus `node_modules/`,
-  `dist/`, and itself),
-- vendors `packages/extension-contracts/` into `contracts/` — a source-only
-  package, so the `file:./contracts` dependency needs no build step,
-- rewrites the dep `"workspace:*"` → `"file:./contracts"` and repoints the
-  manifest `$schema` to `./contracts/schema/...`.
+### Two ways an extension registers
 
-The shipped `.github/workflows/ci.yml` is dormant inside the monorepo (only
-repo-root workflows execute) and becomes the public repo's CI — public-repo
-Actions are free. Once `@fleekdash/contracts` is on npm, the sync can point
-the dependency at the published version instead of vendoring.
+Modern FleekDash (>= 2.6.7) carries `ExtensionAppRegistrar`, which reads the
+manifest's `routes` and registers them automatically. The
+`Registry::register()` call in `extension-starter.php` is a dormant fallback
+for older hosts only: it never runs when the declarative registrar exists,
+and it mirrors the manifest field for field so an old host produces the
+identical stored manifest. Once your minimum FleekDash version ships the
+registrar, the fallback can be deleted entirely.
+
+### Settings
+
+Fields declared under `settings` in the manifest are served to your iframe
+through `sdk.getIntegrationSettings()`. To inject fields into FleekDash's own
+settings sections instead, use `sections` (or the
+`fleekdash_register_settings_fields()` PHP helper).
+
+### Sandbox modes
+
+`sandbox_mode: "none"` is right for same origin, first party pages like this
+starter. Use `"strict"` when the iframe loads untrusted or remote content.
+
+## Where to go next
+
+- [`fleekdash/devkit`](https://github.com/fleekdash/devkit) for a no-WordPress
+  dev loop with fixture data and a live SDK call log
+- [`fleekdash/extensions`](https://github.com/fleekdash/extensions) for real,
+  larger reference extensions (`todo-system` is the full API tour)
+- [`fleekdash/snippets`](https://github.com/fleekdash/snippets) when your idea
+  is small enough to be a single PHP file
+
+## Contributing
+
+Issues and pull requests are welcome. The canonical source of this scaffold
+lives in the private FleekDash monorepo and this repository is a synced
+mirror, so accepted changes are ported back upstream by the maintainers
+before the next sync.
+
+## License
+
+GPL-2.0-or-later, same as WordPress and FleekDash.

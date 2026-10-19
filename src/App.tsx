@@ -74,7 +74,7 @@ export function App() {
 
     if (embedded) {
       instance.reportReady().catch(() => {
-        // Non-blocking — host may be slower than the iframe boot.
+        // Non-blocking - host may be slower than the iframe boot.
       });
     }
 
@@ -96,8 +96,8 @@ export function App() {
       }}>
       <h1 style={{ marginTop: 0 }}>{welcomeText || "Extension Starter"}</h1>
       <p>
-        kind: <code>app</code> — embedded: {String(embedded)} — theme:{" "}
-        {isDark ? "dark" : "light"} — SDK v{sdk?.getVersion() ?? "n/a"}
+        kind: <code>app</code> - embedded: {String(embedded)} - theme:{" "}
+        {isDark ? "dark" : "light"} - SDK v{sdk?.getVersion() ?? "n/a"}
       </p>
 
       <h2>Latest posts (via FleekDashSDK.getWordPressData)</h2>
