@@ -8,16 +8,15 @@
  * gate) which emits a full HTML document. htmx then swaps fragments
  * produced by the REST endpoints below; Alpine handles local-only state.
  *
- * Registration is deliberately imperative: component_url needs
- * admin_url(), which fleekdash.json cannot express - and a manifest
- * without a `routes` key is not route-managed, so ExtensionAppRegistrar
- * leaves this row alone (see starter README, "Why no declarative route").
+ * Registration falls back to the legacy registry only on hosts without
+ * ExtensionAppRegistrar. Modern hosts own this app through the manifest.
  */
 
 defined('ABSPATH') || exit;
 
 const FLEEKDASH_HTMXPACK_ID = 'htmx-pack';
 const FLEEKDASH_HTMXPACK_REGISTRY = 'FleekDash\Integration\Registry';
+const FLEEKDASH_HTMXPACK_REGISTRAR = 'FleekDash\Extension\ExtensionAppRegistrar';
 const FLEEKDASH_HTMXPACK_REST_NS = 'htmxpack/v1';
 const FLEEKDASH_HTMXPACK_PAGE_ACTION = 'fleekdash_htmxpack_app';
 const FLEEKDASH_HTMXPACK_CAP = 'edit_posts';
@@ -25,14 +24,13 @@ const FLEEKDASH_HTMXPACK_MIN_CORE = '2.6.8';
 const FLEEKDASH_HTMXPACK_OPTION = 'fleekdash_htmxpack_notes';
 
 /**
- * Register the app row + iframe route. Always on: the route cannot be
- * declared in fleekdash.json because component_url must be built with
- * admin_url() to survive subdirectory installs. A routes-less manifest
- * is skipped by the declarative registrar, so no double-registration.
+ * Register the app row + iframe route on legacy hosts. Modern hosts use
+ * the declarative manifest registrar and must not receive a second row from
+ * this fallback.
  */
 function fleekdash_htmxpack_register(): void
 {
-    if (!\class_exists(FLEEKDASH_HTMXPACK_REGISTRY)) {
+    if (\class_exists(FLEEKDASH_HTMXPACK_REGISTRAR) || !\class_exists(FLEEKDASH_HTMXPACK_REGISTRY)) {
         return;
     }
 
@@ -248,6 +246,9 @@ require __DIR__ . '/views/fragments.php';
  * ---------------------------------------------------------------------- */
 
 register_activation_hook(__DIR__ . '/htmx-pack.php', static function (): void {
+    if (\class_exists(FLEEKDASH_HTMXPACK_REGISTRAR)) {
+        return; // manifest sync creates/activates the row on the next request
+    }
     fleekdash_htmxpack_register();
     if (\class_exists(FLEEKDASH_HTMXPACK_REGISTRY)) {
         $registry = FLEEKDASH_HTMXPACK_REGISTRY;
@@ -256,6 +257,9 @@ register_activation_hook(__DIR__ . '/htmx-pack.php', static function (): void {
 });
 
 register_deactivation_hook(__DIR__ . '/htmx-pack.php', static function (): void {
+    if (\class_exists(FLEEKDASH_HTMXPACK_REGISTRAR)) {
+        return; // declarative lifecycle reconciliation owns the row
+    }
     if (\class_exists(FLEEKDASH_HTMXPACK_REGISTRY)) {
         $registry = FLEEKDASH_HTMXPACK_REGISTRY;
         $registry::deactivate(FLEEKDASH_HTMXPACK_ID);
