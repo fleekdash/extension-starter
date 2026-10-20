@@ -72,5 +72,26 @@ $css_url = \plugins_url('assets/pack.css', __DIR__ . '/bootstrap.php');
             </div>
         </form>
     </main>
+
+    <script>
+    // Complete the host iframe handshake after the PHP page and its assets load.
+    (function signalFleekDashReady() {
+        function signal() {
+            var config = window.FleekDashConfig || {};
+            var params = new URLSearchParams(window.location.search);
+            window.parent.postMessage({
+                type: 'INTEGRATION_READY',
+                integration_id: config.integration_id || 'htmx-pack',
+                nonce: config.nonce || params.get('nonce') || params.get('fleekdash_nonce') || ''
+            }, '*');
+        }
+
+        if (document.readyState === 'complete') {
+            signal();
+        } else {
+            window.addEventListener('load', signal, { once: true });
+        }
+    }());
+    </script>
 </body>
 </html>
