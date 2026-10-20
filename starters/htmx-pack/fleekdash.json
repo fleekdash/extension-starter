@@ -15,5 +15,15 @@
     "php": "8.0",
     "fleekdash": "2.6.8"
   },
-  "tags": ["starter", "template", "htmx", "alpine", "hypermedia"]
+  "tags": ["starter", "template", "htmx", "alpine", "hypermedia"],
+  "routes": [
+    {
+      "path": "htmx-pack",
+      "title": "HTMX Pack",
+      "component_url": "/wp-admin/admin.php?action=fleekdash_htmxpack_app",
+      "icon": "code",
+      "permissions": ["authenticated"],
+      "sandbox_mode": "none"
+    }
+  ]
 }
