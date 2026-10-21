@@ -36,8 +36,18 @@ export type NotificationType = "success" | "error" | "warning" | "info";
 export interface FleekDashSdkConfig {
   /** The extension id - must match the manifest `id`. */
   integration_id: string;
-  /** Server-provided nonce (injected into the iframe URL/config). */
-  nonce?: string;
+  /**
+   * Server-provided nonce (injected into the iframe URL/config).
+   * Pass `null` on a later `init()` to deliberately clear the credential;
+   * it stays cleared until another value is supplied.
+   */
+  nonce?: string | null;
+  /**
+   * `wp_rest` nonce injected as `_fleekdash_rest_nonce`/`data-rest-nonce`.
+   * Used by the standalone REST path (`X-WP-Nonce`) - the bus nonce cannot
+   * pass `wp_verify_nonce` for REST auth. Pass `null` to clear it.
+   */
+  restNonce?: string | null;
   debug?: boolean;
   /** Defer the automatic INTEGRATION_READY signal until reportReady(). */
   deferReady?: boolean;
@@ -106,6 +116,7 @@ export interface FleekDashSdk {
   getWordPressData(
     endpoint: string,
     params?: Record<string, string | number>,
+    signal?: AbortSignal,
   ): Promise<unknown>;
   /** POST/PUT/PATCH/DELETE via WP REST through the host's authenticated apiClient. */
   mutateWordPressData(

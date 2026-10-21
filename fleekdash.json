@@ -23,14 +23,20 @@
       "default": "Hello from FleekDash"
     }
   },
-  "tags": ["starter", "template", "reference"],
+  "tags": [
+    "starter",
+    "template",
+    "reference"
+  ],
   "routes": [
     {
       "path": "extension-starter",
       "title": "Starter App",
       "component_url": "dist/pages/app.html",
       "icon": "sparkles",
-      "permissions": ["authenticated"],
+      "permissions": [
+        "authenticated"
+      ],
       "sandbox_mode": "none"
     }
   ]

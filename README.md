@@ -24,6 +24,13 @@ extension-starter/
 └── package.json             pnpm scripts and the contracts dependency
 ```
 
+> **Working inside the FleekDash monorepo?** This README is written for the
+> public mirror. In `packages/extension-starter` the contracts dependency
+> resolves via `workspace:*` (no `contracts/` directory) and the manifest
+> `$schema` points at `../extension-contracts`. The sync script rewrites both
+> when mirroring, so copy users of the monorepo package should consume this
+> package in place or read the synced repo instead.
+
 ## From clone to running extension
 
 1. **Copy this directory** to `wp-content/plugins/<your-slug>/` on a
