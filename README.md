@@ -1,7 +1,8 @@
 # FleekDash Extension Starter
 
 The reference scaffold for a FleekDash extension: a WordPress plugin, a
-`fleekdash.json` manifest, one iframe app route, one settings field, and the
+`fleekdash.json` manifest, one iframe app route, one **native dashboard
+page** backed by **declarative data sources**, one settings field, and the
 typed `FleekDashSDK` surface already wired up.
 
 **Clone it, rename it, build it, activate it.** You get a working extension
@@ -13,9 +14,11 @@ is written the way FleekDash expects extensions to be written.
 ```
 extension-starter/
 ├── fleekdash.json           kind:app manifest: Hub card, requirements,
-│                            settings fields, declarative routes
+│                            settings fields, declarative routes, native
+│                            pages, data sources
 ├── extension-starter.php    WP plugin bootstrap: Requires Plugins header,
-│                            lifecycle hooks, legacy Registry fallback
+│                            lifecycle hooks, demo REST endpoints, legacy
+│                            Registry fallback
 ├── pages/app.html           iframe entry: theme CSS preload + fleekdash-sdk.js
 ├── src/                     React app: SDK init, THEME_CHANGED listener,
 │                            getIntegrationSettings + getWordPressData demos
@@ -37,7 +40,9 @@ extension-starter/
    WordPress site that runs FleekDash.
 2. **Rename everything.** The checklist:
    - `extension-starter.php` to `<slug>.php`
-   - the `extension-starter` id and route path in `fleekdash.json`
+   - the `extension-starter` id and route path in `fleekdash.json` — including
+     the `ext.extension-starter.<name>` data-source ids and the
+     `extension-starter/v1` REST namespace in `extension-starter.php`
    - the `INTEGRATION_ID` constant in `src/App.tsx` (it must match the new manifest id)
    - the legacy fallback in `extension-starter.php`: integration id, name, description, tags, settings, and route path
    - `FLEEKDASH_STARTER_*` constants and `fleekdash_starter_*` function names
@@ -74,6 +79,38 @@ for older hosts only: it never runs when the declarative registrar exists,
 and it mirrors the manifest field for field so an old host produces the
 identical stored manifest. Once your minimum FleekDash version ships the
 registrar, the fallback can be deleted entirely.
+
+### Native pages and data sources
+
+An app is not limited to iframe routes. Two JSON-only manifest keys let you
+ship a **dashboard-native page** - no iframe, no built bundle:
+
+- `pages[]` declares AdminPages rendered under `#/app/<id>/<page-id>` in the
+  FleekDash workspace. Each page carries `placement` (where it shows up:
+  `menu`, `dashboard`, or `none`), an optional WP `capability`, and
+  `content.type: "blocks"` - a schema-v3 dashboard snapshot (connectors,
+  widgets, sections, widgetPlacements), the same format the page builder
+  saves. Declare an explicit `pages: []` later and the provisioner prunes
+  what it created; edit a provisioned page in the UI and your next manifest
+  sync leaves the customization alone.
+- `data_sources[]` declares REST resources dashboard widgets bind to through
+  the `ext-rest` connector. Each source is `{id, label, shape, rest_route}`:
+  the id is namespaced `ext.<manifest-id>.<name>`, `rest_route` is your own
+  `register_rest_route()` path (site-relative, `/wp-json` is mounted for
+  you), and `shape` (`metric-cards`, `table-rows`, `time-series`, `geo`)
+  picks the projection. Optional `entity`, `columns`, `rowActions` and
+  `capability` refine table sources and access.
+
+The starter demonstrates both: `ext.extension-starter.cards` (metric-cards)
+feeds the kpi-group widget and `ext.extension-starter.tasks` (table-rows)
+feeds the table widget on the "Starter Dashboard" page - served by two demo
+endpoints in `extension-starter.php`. Widget items bind by resource id, so
+`{"id": "ext.extension-starter.cards", "connectorId": "c-ext-rest"}` inside a
+widget's `items` is all the wiring needed.
+
+Generic WordPress post grids do not need a declared source - bind widget
+items to the built-in `wp.<post_type>` resources (e.g. `wp.task`,
+`wp.coupon`) on the `c-wp-query` connector instead.
 
 ### Settings
 

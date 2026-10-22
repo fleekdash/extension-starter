@@ -3,8 +3,8 @@
   "kind": "app",
   "id": "extension-starter",
   "name": "Extension Starter",
-  "description": "The reference FleekDash extension scaffold: one iframe app route, one settings field, typed SDK usage. Rename and build from here.",
-  "version": "0.1.0",
+  "description": "The reference FleekDash extension scaffold: one iframe app route, one native dashboard page, one settings field, declarative data sources, typed SDK usage. Rename and build from here.",
+  "version": "0.2.0",
   "author": "FleekDash",
   "author_uri": "https://fleekdash.com",
   "icon": "sparkles",
@@ -38,6 +38,122 @@
         "authenticated"
       ],
       "sandbox_mode": "none"
+    }
+  ],
+  "data_sources": [
+    {
+      "id": "ext.extension-starter.cards",
+      "label": "Demo signups",
+      "shape": "metric-cards",
+      "rest_route": "/extension-starter/v1/cards"
+    },
+    {
+      "id": "ext.extension-starter.tasks",
+      "label": "Demo tasks",
+      "shape": "table-rows",
+      "rest_route": "/extension-starter/v1/tasks",
+      "entity": "task",
+      "columns": [
+        {
+          "key": "title",
+          "label": "Task",
+          "type": "text"
+        },
+        {
+          "key": "assignee",
+          "label": "Assignee",
+          "type": "text"
+        },
+        {
+          "key": "status",
+          "label": "Status",
+          "type": "status"
+        }
+      ],
+      "rowActions": [
+        "view",
+        "edit"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "id": "dashboard",
+      "title": "Starter Dashboard",
+      "icon": "dashboard",
+      "placement": {
+        "zone": "menu"
+      },
+      "route": {
+        "type": "native"
+      },
+      "content": {
+        "type": "blocks",
+        "config": {
+          "connectors": {
+            "c-ext-rest": {
+              "type": "ext-rest",
+              "config": {}
+            }
+          },
+          "widgets": {
+            "w-kpi-group": {
+              "id": "w-kpi-group",
+              "type": "kpi-group",
+              "connectorId": "c-ext-rest",
+              "props": {},
+              "items": [
+                {
+                  "id": "ext.extension-starter.cards",
+                  "visible": true,
+                  "connectorId": "c-ext-rest"
+                }
+              ]
+            },
+            "w-table": {
+              "id": "w-table",
+              "type": "table",
+              "connectorId": "c-ext-rest",
+              "props": {},
+              "items": [
+                {
+                  "id": "ext.extension-starter.tasks",
+                  "visible": true,
+                  "connectorId": "c-ext-rest"
+                }
+              ]
+            }
+          },
+          "widgetOrder": [
+            "kpi-group",
+            "table"
+          ],
+          "enabledWidgetIds": [
+            "kpi-group",
+            "table"
+          ],
+          "sections": [
+            {
+              "id": "sec-1",
+              "templateId": "one-col"
+            },
+            {
+              "id": "sec-2",
+              "templateId": "one-col"
+            }
+          ],
+          "widgetPlacements": {
+            "w-kpi-group": {
+              "sectionId": "sec-1",
+              "slotIndex": 0
+            },
+            "w-table": {
+              "sectionId": "sec-2",
+              "slotIndex": 0
+            }
+          }
+        }
+      }
     }
   ]
 }
