@@ -1,0 +1,21 @@
+/* GENERATED from src/styles/globals.css — do not edit. */
+@custom-variant dark (&:is(.dark *));
+@custom-variant local-dark (&:is(.dark-sidebar *));
+@custom-variant container-xs (@container (min-width: 20rem));
+@custom-variant container-sm (@container (min-width: 24rem));
+@custom-variant container-md (@container (min-width: 28rem));
+@custom-variant container-lg (@container (min-width: 32rem));
+@custom-variant container-xl (@container (min-width: 36rem));
+@custom-variant container-2xl (@container (min-width: 42rem));
+@custom-variant container-3xl (@container (min-width: 48rem));
+@custom-variant container-4xl (@container (min-width: 56rem));
+@custom-variant container-5xl (@container (min-width: 64rem));
+@custom-variant container-6xl (@container (min-width: 72rem));
+@custom-variant container-7xl (@container (min-width: 80rem));
+@custom-variant dashboard-short (@container dashboard (max-height: 48rem));
+@custom-variant dashboard-tiny (@container dashboard (max-height: 36rem));
+
+.dashboard-size-container {
+  container-type: size;
+  container-name: dashboard;
+}

@@ -21,11 +21,11 @@ const FLEEKDASH_HTMXPACK_REGISTRY = 'FleekDash\Integration\Registry';
 const FLEEKDASH_HTMXPACK_REST_NS = 'htmxpack/v1';
 const FLEEKDASH_HTMXPACK_PAGE_ACTION = 'fleekdash_htmxpack_app';
 const FLEEKDASH_HTMXPACK_CAP = 'edit_posts';
-// Declared floor for the first release shipping ExtensionAssets - kept
-// as requires metadata only. The runtime gate checks class_exists()
-// directly: released 2.6.8/2.6.9 builds predate the class and backports
-// may carry it on older version strings, so version_compare is wrong
-// in both directions.
+// Declared floor for a release shipping ExtensionAssets with the
+// FLEEK_UI stylesheet handle - kept as requires metadata only. The
+// runtime gate checks class_exists() + method_exists('renderLinkTags')
+// directly: released builds may carry partial backports on older
+// version strings, so version_compare is wrong in both directions.
 const FLEEKDASH_HTMXPACK_MIN_CORE = '2.6.10';
 const FLEEKDASH_HTMXPACK_ASSETS = 'FleekDash\Extension\ExtensionAssets';
 const FLEEKDASH_HTMXPACK_META_KEY = 'fleekdash_htmxpack_notes';
@@ -42,13 +42,14 @@ function fleekdash_htmxpack_register(): void
         return;
     }
 
-    // Functional gate: the pack needs ExtensionAssets regardless of what
-    // FLEEKDASH_VERSION claims (2.6.8/2.6.9 shipped without it). Surface
-    // the rejection instead of skipping silently.
-    if (!\class_exists(FLEEKDASH_HTMXPACK_ASSETS)) {
+    // Functional gate: the pack needs ExtensionAssets with the
+    // stylesheet API regardless of what FLEEKDASH_VERSION claims.
+    // Surface the rejection instead of skipping silently.
+    if (!\class_exists(FLEEKDASH_HTMXPACK_ASSETS)
+        || !\method_exists(FLEEKDASH_HTMXPACK_ASSETS, 'renderLinkTags')) {
         \add_action('admin_notices', static function (): void {
             echo '<div class="notice notice-error"><p>'
-                . \esc_html__('HTMX Pack requires a newer FleekDash (ExtensionAssets missing) - update FleekDash and reload.', 'fleekdash-htmxpack')
+                . \esc_html__('HTMX Pack requires a newer FleekDash (ExtensionAssets stylesheet API missing) - update FleekDash and reload.', 'fleekdash-htmxpack')
                 . '</p></div>';
         });
         return;

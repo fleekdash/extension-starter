@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getBrowserWindow, getFleekDashSdk } from "@fleekdash/contracts";
 import type { FleekDashSdk } from "@fleekdash/contracts";
+import { Badge, Button, Icon, Skeleton } from "@fleekdash/design-system";
 
 const INTEGRATION_ID = "extension-starter";
 
@@ -27,13 +28,15 @@ export function App() {
     }
   });
   const [welcomeText, setWelcomeText] = useState("");
-  const [posts, setPosts] = useState<WpPost[]>([]);
+  const [posts, setPosts] = useState<WpPost[] | undefined>();
+  const [notifying, setNotifying] = useState(false);
   const embedded = isFleekDashEmbedded();
 
   useEffect(() => {
     let active = true;
     const instance = getFleekDashSdk();
     if (!instance) {
+      setPosts([]); // standalone: render the empty state, not an endless skeleton
       return;
     }
     setSdk(instance);
@@ -70,7 +73,9 @@ export function App() {
           setPosts(data as WpPost[]);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (active) setPosts([]);
+      });
 
     if (embedded) {
       instance.reportReady().catch(() => {
@@ -84,36 +89,56 @@ export function App() {
     };
   }, [embedded]);
 
+  const notify = () => {
+    if (!sdk) {
+      return;
+    }
+    setNotifying(true);
+    sdk
+      .showNotification("Hello from the starter!", "success")
+      .finally(() => setNotifying(false));
+  };
+
   return (
-    <div
-      style={{
-        fontFamily: "system-ui, sans-serif",
-        padding: 24,
-        height: "100%",
-        overflow: "auto",
-        background: "var(--background, transparent)",
-        color: "var(--foreground, inherit)",
-      }}>
-      <h1 style={{ marginTop: 0 }}>{welcomeText || "Extension Starter"}</h1>
-      <p>
-        kind: <code>app</code> - embedded: {String(embedded)} - theme:{" "}
-        {isDark ? "dark" : "light"} - SDK v{sdk?.getVersion() ?? "n/a"}
-      </p>
+    <div className="fleek-ui bg-background text-foreground h-full overflow-auto p-6 font-sans">
+      <div className="mb-1 flex items-center gap-2">
+        <Icon name="sparkles" className="text-primary size-5" />
+        <h1 className="m-0 text-xl font-semibold">
+          {welcomeText || "Extension Starter"}
+        </h1>
+      </div>
+      <div className="text-muted-foreground mb-4 flex items-center gap-2 text-sm">
+        <Badge variant="primary">kind: app</Badge>
+        <Badge variant={embedded ? "success" : "secondary"}>
+          {embedded ? "embedded" : "standalone"}
+        </Badge>
+        <Badge variant="secondary">
+          <Icon name={isDark ? "moon" : "sun"} className="size-3.5" />
+          {isDark ? "dark" : "light"}
+        </Badge>
+        <span>SDK v{sdk?.getVersion() ?? "n/a"}</span>
+      </div>
 
-      <h2>Latest posts (via FleekDashSDK.getWordPressData)</h2>
-      <ul>
-        {posts.map((post) => (
-          <li key={post.id}>{post.title?.rendered ?? `#${post.id}`}</li>
-        ))}
-      </ul>
+      <h2 className="text-base font-medium">
+        Latest posts (via FleekDashSDK.getWordPressData)
+      </h2>
+      {posts === undefined ? (
+        <div className="mb-4 space-y-2">
+          <Skeleton width={300} height={16} />
+          <Skeleton width={280} height={16} />
+          <Skeleton width={240} height={16} />
+        </div>
+      ) : (
+        <ul className="mb-4 list-disc pl-5">
+          {posts.map((post) => (
+            <li key={post.id}>{post.title?.rendered ?? `#${post.id}`}</li>
+          ))}
+        </ul>
+      )}
 
-      <button
-        type="button"
-        onClick={() => {
-          sdk?.showNotification("Hello from the starter!", "success");
-        }}>
+      <Button icon="bell" state={notifying ? "loading" : null} onClick={notify}>
         showNotification() demo
-      </button>
+      </Button>
     </div>
   );
 }

@@ -3,6 +3,10 @@
  * Fragment renderers for htmx swaps. Every renderer returns a string of
  * HTML - always escape user data with esc_html()/esc_url()/esc_attr()
  * and never interpolate raw option/request values.
+ *
+ * Styling is pure Fleek UI: utilities + fui-* classes only - no pack
+ * stylesheet, no hex literals, no custom selectors. State-dependent
+ * styling is emitted server-side (see the is-done ternary below).
  */
 
 defined('ABSPATH') || exit;
@@ -22,15 +26,15 @@ function fleekdash_htmxpack_fragment_list(): string
     $hidden = \count($notes) - \count($shown);
     \ob_start();
     ?>
-    <ul id="notes-list" class="hxp-notes">
+    <ul id="notes-list" class="flex flex-col gap-2">
         <?php if ($shown === []) : ?>
-            <li class="hxp-empty" x-data><?php \esc_html_e('No notes yet - add the first one below.', 'fleekdash-htmxpack'); ?></li>
+            <li class="rounded-lg border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground" x-data><?php \esc_html_e('No notes yet - add the first one below.', 'fleekdash-htmxpack'); ?></li>
         <?php endif; ?>
         <?php foreach ($shown as $note) : ?>
             <?php echo fleekdash_htmxpack_fragment_row($note); ?>
         <?php endforeach; ?>
         <?php if ($hidden > 0) : ?>
-            <li class="hxp-empty">
+            <li class="rounded-lg border border-dashed border-border bg-card p-4 text-center text-sm text-muted-foreground">
                 <?php echo \esc_html(\sprintf(
                     /* translators: %d: number of notes not rendered */
                     \_n('%d older note not shown.', '%d older notes not shown.', $hidden, 'fleekdash-htmxpack'),
@@ -52,12 +56,13 @@ function fleekdash_htmxpack_fragment_list(): string
 function fleekdash_htmxpack_fragment_row(array $note): string
 {
     $id = (string) ($note['id'] ?? '');
+    $done = !empty($note['done']);
     \ob_start();
     ?>
-    <li class="hxp-note<?php echo !empty($note['done']) ? ' is-done' : ''; ?>" x-data="{ busy: false }">
+    <li class="fui-card flex items-center gap-2.5 px-3 py-2.5" x-data="{ busy: false }">
         <button
             type="button"
-            class="hxp-toggle"
+            class="fui-btn fui-btn-ghost h-7 w-7 p-0 hover:text-primary"
             x-bind:disabled="busy"
             x-on:click="busy = true"
             x-on:htmx:after-request="busy = false"
@@ -65,11 +70,11 @@ function fleekdash_htmxpack_fragment_row(array $note): string
             hx-target="closest li"
             hx-swap="outerHTML"
             aria-label="<?php \esc_attr_e('Toggle done', 'fleekdash-htmxpack'); ?>"
-        ><?php echo !empty($note['done']) ? '&#10003;' : '&#9675;'; ?></button>
-        <span class="hxp-text"><?php echo \esc_html((string) ($note['text'] ?? '')); ?></span>
+        ><?php echo $done ? '&#10003;' : '&#9675;'; ?></button>
+        <span class="flex-1 break-words<?php echo $done ? ' text-muted-foreground line-through' : ''; ?>"><?php echo \esc_html((string) ($note['text'] ?? '')); ?></span>
         <button
             type="button"
-            class="hxp-delete"
+            class="fui-btn fui-btn-ghost h-7 w-7 p-0 hover:text-destructive"
             hx-delete="<?php echo \esc_url(fleekdash_htmxpack_rest_url('/' . $id)); ?>"
             hx-target="#notes-list"
             hx-swap="outerHTML"

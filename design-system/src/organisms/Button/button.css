@@ -1,0 +1,201 @@
+/* Button base styles */
+.btn-base {
+  position: relative;
+  overflow: hidden;
+  transform: translate3d(0, 0, 0);
+  white-space: nowrap;
+  max-width: 100%;
+  transition:
+    transform 0.2s ease-out,
+    filter 0.15s ease-out;
+}
+
+/*
+ * Ghost / outline hover on muted: use muted-foreground for text and icons.
+ * On :root so standalone controls (e.g. raw <button> + Tailwind) inherit the same pairing.
+ */
+:root {
+  --ghost-hover-bg: var(--muted);
+  --ghost-hover-text: var(--muted-foreground);
+}
+
+/*
+ * Do not set overflow:visible on .icon-button: it overrides .animation’s overflow:hidden
+ * (lower specificity), so the shiny ::before (skew + left animation) bleeds outside the button.
+ * Corner badges: render on iconButtonOverlayHostBase (CounterButton wrapper), not inside Button.
+ */
+
+/* Hover effect - only for specific variants that need it */
+.btn-base[class*="bg-primary"]:hover,
+.btn-base[variant="default"]:hover {
+  filter: brightness(0.9);
+}
+
+.btn-base[class*="bg-secondary"]:hover,
+.btn-base[variant="secondary"]:hover {
+  filter: brightness(0.9);
+}
+
+.btn-base[class*="bg-destructive"]:hover,
+.btn-base[variant="destructive"]:hover {
+  filter: brightness(0.9);
+}
+
+/* Special variants */
+.btn-base[variant="outline"]:hover {
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  filter: none;
+}
+
+.btn-base[variant="ghost"]:hover {
+  background-color: var(--muted);
+  opacity: 0.9;
+  filter: none;
+}
+
+/* Legacy hook: keep hover pairing aligned with ghost tokens */
+.ghost-btn:hover {
+  background-color: var(--ghost-hover-bg) !important;
+  color: var(--ghost-hover-text) !important;
+}
+
+.btn-base[variant="link"]:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  background-color: transparent;
+  filter: none;
+}
+
+/* Ripple effect using pseudo-element */
+.btn-base::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  padding-bottom: 120%;
+  border-radius: 50%;
+  transform: translate3d(-50%, -50%, 0) scale(0);
+  opacity: 0;
+  background-color: rgba(255, 255, 255, 0.322);
+  /* Decorative overlay only — must not steal clicks from nested links (e.g. Button asChild + <a>). */
+  pointer-events: none;
+  transition:
+    transform 0.3s ease-out,
+    opacity 0.3s ease-out;
+}
+
+/* Light variant for dark buttons */
+.dark .btn-base::after {
+  background-color: rgba(255, 255, 255, 0.226);
+}
+
+/* Active state */
+.btn-base:active::after {
+  transform: translate3d(-50%, -50%, 0) scale(1);
+  opacity: 0.2;
+  transition: 0s;
+}
+
+/* Shiny animation base styles */
+.animation {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Explicitly disable shiny effect */
+.no-shiny::before,
+.no-shiny.animation::before {
+  content: none !important;
+  display: none !important;
+  animation: none !important;
+  opacity: 0 !important;
+}
+
+.animation::before {
+  content: "";
+  opacity: 0;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent 20%,
+    var(--brand-alpha-medium, rgba(255, 255, 255, 0.2)) 50%,
+    transparent 80%
+  );
+  transform: skewX(-20deg);
+  pointer-events: none; /* Ensure the pseudo-element doesn't interfere with button interactions */
+  z-index: 1; /* Keep the shine effect above the button background but below content */
+}
+
+/* Only apply default animation when permanent is set */
+.animation-permanent::before {
+  animation: shineHover 3s ease-in-out infinite;
+}
+
+/* Only apply hover animation when hover is set and user is hovering */
+.animation-hover:hover::before {
+  animation: shineHover 3s ease-in-out infinite;
+}
+
+/* Reset animation when not hovering */
+.animation-hover::before {
+  animation: none;
+  opacity: 0;
+  left: -100%;
+}
+
+.btn-label {
+  display: inline-flex;
+  flex: 1 1 auto;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes shineDefault {
+  0% {
+    left: -100%;
+  }
+  1% {
+    left: -100%;
+    opacity: 1;
+  }
+  15% {
+    left: 100%;
+    opacity: 1;
+  }
+  16% {
+    opacity: 0;
+  }
+  100% {
+    left: -100%;
+  }
+}
+
+@keyframes shineHover {
+  0% {
+    left: -100%;
+  }
+  1% {
+    left: -100%;
+    opacity: 1;
+  }
+  45% {
+    left: 100%;
+    opacity: 1;
+  }
+  46% {
+    opacity: 0;
+  }
+  100% {
+    left: -100%;
+  }
+}

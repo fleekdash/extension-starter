@@ -1,20 +1,21 @@
 # htmx-pack - hypermedia-first FleekDash extension pack
 
 A copy-and-extend starter for **PHP-rendered FleekDash extensions**: no
-build step, no CDN, no JavaScript bundler. The server renders HTML;
-htmx swaps fragments; Alpine islands handle local state. This is the
-pack shape agent-generated extensions use (see the F3 extension vision:
-LLMs produce auditable PHP + HTML far more reliably than bundled React).
+build step, no CDN, no JavaScript bundler, **no pack stylesheet**. The
+server renders HTML; htmx swaps fragments; Alpine islands handle local
+state; **Fleek UI** (`fleek-ui.css`) supplies every visual: tokens,
+Tailwind utilities, `fui-*` component classes. This is the pack shape
+agent-generated extensions use (see the F3 extension vision: LLMs
+produce auditable PHP + HTML far more reliably than bundled React).
 
 ```
 htmx-pack/
 ├── htmx-pack.php        Plugin header → bootstrap.php
 ├── bootstrap.php        register() + admin.php page + REST fragment endpoints + caps
 ├── fleekdash.json       Metadata + requires (no `routes` key - see below)
-├── views/
-│   ├── app.php          Full-document page (vendored htmx + Alpine + SDK ready)
-│   └── fragments.php    Shared fragment renderers (escaped)
-└── assets/pack.css      Minimal styles (.hxp- prefixed)
+└── views/
+    ├── app.php          Full-document page (fleek-ui.css + vendored htmx/Alpine + SDK ready)
+    └── fragments.php    Shared fragment renderers (escaped, utility classes only)
 ```
 
 ## How it fits together
@@ -23,7 +24,9 @@ htmx-pack/
 iframe ──GET──▶ /wp-admin/admin.php?action=fleekdash_htmxpack_app
                    │  cookie auth + current_user_can('edit_posts')
                    ▼  views/app.php: full HTML document
+                      · ExtensionAssets::renderLinkTags([ExtensionAssets::FLEEK_UI])
                       · ExtensionAssets::renderScriptTags(['htmx','alpinejs'])
+                      · <body class="fleek-ui">  ← scoped base reset lives here
                       · same-origin-validated fleekdash_sdk_url + SDK.init()
                         (posts INTEGRATION_READY - lifts the host overlay)
                       · hx-headers='{"X-WP-Nonce": "<wp_rest nonce>"}' on <body>
@@ -37,12 +40,36 @@ iframe ──GET──▶ /wp-admin/admin.php?action=fleekdash_htmxpack_app
 ## The contract (what you may rely on)
 
 **Assets.** `FleekDash\Extension\ExtensionAssets` is the only sanctioned
-loader: `renderScriptTags(['htmx', 'alpinejs'])` emits `<script>` tags
-pointing at vendored copies under `public/vendor/` in the FleekDash
-plugin (htmx synchronous, Alpine `defer`). Pack pages render outside
-`wp_head`, so the helper emits tags instead of enqueueing. **Never
-reference a CDN** - vendoring is a hard requirement so packs are
-auditable and work offline.
+loader. `renderLinkTags([ExtensionAssets::FLEEK_UI])` emits the vendored
+`fleek-ui.css` `<link>`; `renderScriptTags(['htmx', 'alpinejs'])` emits
+the vendored `<script>` tags (htmx synchronous, Alpine `defer`). Pack
+pages render outside `wp_head`, so the helper emits tags instead of
+enqueueing. **Never reference a CDN** - vendoring is a hard requirement
+so packs are auditable and work offline.
+
+**Styling - Fleek UI, not pack CSS.** There is no `pack.css`: every
+visual comes from `fleek-ui.css`, generated from the same design tokens
+as the host shell. Rules for authoring views:
+
+- `<body class="fleek-ui">` (or any wrapper element) opts into the
+  scoped base reset + typography - outside it, nothing is reset.
+- Compose **Tailwind utilities** + **`fui-*` component classes**
+  (`fui-btn`, `fui-input`, `fui-card`, `fui-badge`, `fui-skeleton`).
+- **Never write a hex color, a custom color class, or a pack
+  stylesheet.** Semantic tokens (`bg-card`, `text-muted-foreground`,
+  `border-border`, `bg-primary`, `text-destructive`, `bg-popover`…)
+  re-resolve automatically when the user switches theme, palette or
+  dark/light - hardcoded colors do not.
+- State-dependent classes are emitted **server-side** (see the is-done
+  ternary in `fragments.php`) - no client-side class toggling needed.
+- Dark mode works via the `.dark` class the host puts on the iframe
+  `<html>`; `dark:` utilities and `.dark` token overrides respond to it.
+- Alpine needs `x-cloak` on anything hidden until boot - the base layer
+  ships the `[x-cloak]` rule. htmx busy states use `htmx-indicator` /
+  `htmx-indicator-hide`.
+- The full class inventory + component snippets live in the Fleek UI
+  authoring guide (`docs/future/fleek-ui/technical-reference/`) and the
+  copyable blocks under `packages/design-system/snippets/`.
 
 **Ready signal.** The host keeps a new iframe behind a loading overlay
 until the MessageBus delivers `INTEGRATION_READY`. Imperative routes do
@@ -91,9 +118,9 @@ or meta data.
 form keeps its draft on failure; the toggle re-enables itself).
 
 **Lifecycle.** `plugins_loaded` → `register()` (gated on
-`class_exists(ExtensionAssets)` and `FLEEKDASH_VERSION` ≥ min core - the
-class check is the functional gate because released 2.6.8/2.6.9 builds
-predate it); activation → `register()` + `activate`; deactivation →
+`class_exists(ExtensionAssets)` + `method_exists('renderLinkTags')` -
+the functional check because released builds may carry partial
+backports); activation → `register()` + `activate`; deactivation →
 `deactivate`. Notes are stored per-user in `FLEEKDASH_HTMXPACK_META_KEY`
 user meta: personal state is the honest demo shape and cross-user
 writes cannot collide.
@@ -102,8 +129,8 @@ writes cannot collide.
 
 Copy `starters/htmx-pack/` into `wp-content/plugins/`, rename the
 `htmxpack`/`htmx-pack`/`FLEEKDASH_HTMXPACK_*` identifiers, then activate.
-Requires FleekDash ≥ 2.6.10 (the first release shipping ExtensionAssets;
-2.6.8/2.6.9 predate it). The route appears in the FleekDash shell as
+Requires a FleekDash build shipping `ExtensionAssets::renderLinkTags`
+and the `fleek-ui` handle. The route appears in the FleekDash shell as
 **HTMX Pack** on the next registry sync.
 
 ## What to extend
@@ -111,7 +138,7 @@ Requires FleekDash ≥ 2.6.10 (the first release shipping ExtensionAssets;
 | Need | Where |
 |---|---|
 | Another list/detail screen | New fragment renderer + REST route in `bootstrap.php`; new `hx-*` target in `app.php` |
-| Richer client state (modal, tabs) | Alpine `x-data` islands - keep it local; anything shared goes through htmx |
+| Richer client state (modal, tabs) | Alpine `x-data` islands - copy a block from `packages/design-system/snippets/` |
 | A JSON API (not fragments) | Return a normal array from the REST callback - the HTML filter only touches string bodies under this namespace |
 | Settings page | Add `settings_schema` to `register()` (and `settings` to the manifest); read via `FleekDash\Extension\ExtensionSettingsStore` |
 | Agent-generated packs | This directory is the reference shape; agents copy it, then edit `bootstrap.php` + `views/` only |
@@ -128,6 +155,9 @@ Requires FleekDash ≥ 2.6.10 (the first release shipping ExtensionAssets;
 - **SDK for ready only:** the pack talks REST directly; the SDK exists
   solely to lift the host's loading overlay (plus whatever host calls a
   pack later wants).
+- **Zero pack CSS:** duplicating tokens per pack is what made old packs
+  drift from the active theme. `fleek-ui.css` exists so a pack can be
+  complete without a single authored style rule.
 
 ## Accepted limitations
 
