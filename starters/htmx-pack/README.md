@@ -164,12 +164,17 @@ and the `fleek-ui` handle. The route appears in the FleekDash shell as
 - **Same-user concurrent edits:** mutations run compare-and-swap
   through `fleekdash_htmxpack_update()`: an envelope value so the
   `$prev_value` predicate always engages, `add_user_meta(unique)` for
-  the first write, duplicate rows merged by id when a first-note race
-  slips through (WordPress enforces no unique index on user meta), and
-  object-cache invalidation between retries. A lost write surfaces as
-  a 409 in the error region. It is still read-modify-write at the
-  storage layer - packs that outgrow it move to per-note meta rows or
-  a custom table; the fragment contract does not change.
+  the first write, and object-cache invalidation between retries.
+  Duplicate rows from a first-note race (WordPress enforces no unique
+  index on user meta) are collapsed by **meta_id** - the snapshot is
+  taken via `$wpdb` because `delete_user_meta` matches by value and
+  would also hit the anchor row or unrelated identical values. Each
+  extra row is deleted only while it still holds its observed value,
+  so racer rewrites and late inserts always survive. A lost write
+  surfaces as a 409 in the error region. It is still
+  read-modify-write at the storage layer - packs that outgrow it move
+  to per-note meta rows or a custom table; the fragment contract does
+  not change.
 - **No offline preview:** the devkit canvas mocks the MessageBus host,
   which this pack does not use. Preview is `wp-admin` on a dev site
   (or a future `fd-dev --php` wrapper).

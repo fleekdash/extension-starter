@@ -289,33 +289,46 @@ function fleekdash_htmxpack_notes(): array
  * silently degrade the CAS into an unconditional write. Absent rows take
  * the add_user_meta(..., unique: true) path; that check is a
  * SELECT-then-INSERT (no db-level unique index), so a first-note race
- * can still create duplicate rows - the merge-repair below collapses
- * them by union of note ids on the next read.
+ * can still create duplicate rows - the repair below collapses them.
+ *
+ * The snapshot is taken with meta_ids via $wpdb (not get_user_meta):
+ * delete_user_meta matches by VALUE, so collapsing duplicates by value
+ * can delete the anchor we just wrote or an unrelated matching row.
+ * Row identity (umeta_id) plus a re-read value check is the only way to
+ * delete exactly the observed duplicates, including empty '' / false /
+ * null rows that carry no usable value predicate at all.
  *
  * @param callable(array<int, array{id: string, text: string, done: bool, created: int}>): array<int, array{id: string, text: string, done: bool, created: int}> $mutator
  * @return bool false when every CAS attempt lost - callers must surface an error
  */
 function fleekdash_htmxpack_update(callable $mutator): bool
 {
+    global $wpdb;
     $uid = \get_current_user_id();
     for ($attempt = 0; $attempt < 4; $attempt++) {
-        // Read ALL rows for the key: add_user_meta(unique) is a
-        // SELECT-then-INSERT without a db-level unique constraint, so a
-        // first-note race can leave duplicate rows. Items are merged by
-        // union on note id - a duplicate row can only add notes, never
-        // remove them, so merging a stale envelope cannot resurrect a
-        // deleted note (deleted ids simply are not in any row).
-        $rows = \get_user_meta($uid, FLEEKDASH_HTMXPACK_META_KEY, false);
-        $count = \is_array($rows) ? \count($rows) : 0;
+        // meta_id-keyed snapshot straight from the table: fresh even when
+        // the user_meta cache lags a lost CAS. Items merge by union on
+        // note id - a duplicate row can only add notes, never remove them.
+        $meta_rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT umeta_id, meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s ORDER BY umeta_id",
+                $uid,
+                FLEEKDASH_HTMXPACK_META_KEY
+            ),
+            ARRAY_A
+        ) ?: [];
 
         $seen = [];
         $merged = [];
-        $converged = $count > 0;
-        foreach ($rows as $row) {
-            if (!\is_array($row) || !isset($row['items'])) {
+        $rows = [];
+        $converged = \count($meta_rows) > 0;
+        foreach ($meta_rows as $mr) {
+            $value = \maybe_unserialize($mr['meta_value']);
+            $rows[] = ['mid' => (int) $mr['umeta_id'], 'value' => $value];
+            if (!\is_array($value) || !isset($value['items'])) {
                 $converged = false;
             }
-            foreach (fleekdash_htmxpack_items($row) as $note) {
+            foreach (fleekdash_htmxpack_items($value) as $note) {
                 $id = (string) ($note['id'] ?? '');
                 if ($id !== '' && !isset($seen[$id])) {
                     $seen[$id] = true;
@@ -330,57 +343,51 @@ function fleekdash_htmxpack_update(callable $mutator): bool
             return true; // every row is already a proper envelope with the desired items
         }
 
-        $anchor = -1;
-        $wrote = false;
-        if ($count === 0) {
-            $wrote = \add_user_meta($uid, FLEEKDASH_HTMXPACK_META_KEY, $env, true);
-        } else {
-            // CAS anchor: the first non-empty row. A conditional UPDATE on
-            // its exact stored value atomically lands the merged+mutated
-            // envelope and migrates a legacy bare list in one step.
-            foreach ($rows as $i => $row) {
-                if (!empty($row)) {
-                    $anchor = $i;
-                    break;
-                }
-            }
-            if ($anchor === -1) {
-                // Every row is an unpredicatable empty value - a unique add
-                // can never pass while they exist, so overwrite in place.
-                // The only write shape without a value predicate: a racer's
-                // insert between read and write would be overwritten, which
-                // is why this path is the last resort for corrupt rows only.
-                $wrote = (bool) \update_user_meta($uid, FLEEKDASH_HTMXPACK_META_KEY, $env);
-            } else {
-                $wrote = (bool) \update_user_meta($uid, FLEEKDASH_HTMXPACK_META_KEY, $env, $rows[$anchor]);
-                if (!$wrote) {
-                    // update_user_meta also returns false when the stored
-                    // value already equals $env - re-read to disambiguate
-                    // a real CAS miss from an equal-value no-op.
-                    \wp_cache_delete($uid, 'user_meta');
-                    $wrote = \in_array($env, \get_user_meta($uid, FLEEKDASH_HTMXPACK_META_KEY, false), true);
-                }
+        // CAS anchor: the first non-empty row. A conditional UPDATE on
+        // its exact stored value atomically lands the merged+mutated
+        // envelope and migrates a legacy bare list in one step.
+        $anchor_mid = -1;
+        $anchor_value = null;
+        foreach ($rows as $row) {
+            if (!empty($row['value'])) {
+                $anchor_mid = $row['mid'];
+                $anchor_value = $row['value'];
+                break;
             }
         }
 
+        $wrote = false;
+        if ($anchor_mid !== -1) {
+            $wrote = (bool) \update_user_meta($uid, FLEEKDASH_HTMXPACK_META_KEY, $env, $anchor_value);
+            if (!$wrote) {
+                // update_user_meta also returns false when the stored
+                // value already equals $env - re-read to disambiguate
+                // a real CAS miss from an equal-value no-op.
+                \wp_cache_delete($uid, 'user_meta');
+                $wrote = \in_array($env, \get_user_meta($uid, FLEEKDASH_HTMXPACK_META_KEY, false), true);
+            }
+        } else {
+            // No non-empty row to CAS on: delete every observed row by
+            // meta_id (row identity needs no value predicate, so even
+            // unpredicatable '' / false / null rows converge), then take
+            // the unique-insert path. A racer's insert blocks the add,
+            // which retries and merges instead of overwriting anything.
+            foreach ($rows as $row) {
+                fleekdash_htmxpack_delete_row_if_unchanged($row);
+            }
+            $wrote = \add_user_meta($uid, FLEEKDASH_HTMXPACK_META_KEY, $env, true);
+        }
+
         if ($wrote) {
-            // Collapse the other snapshot rows, each deleted by its exact
-            // observed value: rows a racer rewrote no longer match and
-            // survive, and rows inserted after the read were never seen.
-            // A row whose snapshot value equals $env is never deleted:
-            // delete_metadata matches by value, not row identity, so the
-            // predicate would also hit the anchor we just wrote (e.g.
-            // rows [A] + [B], deleting note A writes {B} into the anchor
-            // while the duplicate already holds {B}). Rows carrying $env
-            // are redundant mirrors - safe to keep, never safe to delete.
-            // Empty-string/false/null rows cannot carry a value predicate
-            // in delete_metadata - they are left in place (items() yields
-            // nothing for them, so they stay inert).
-            foreach ($rows as $i => $row) {
-                if ($i === $anchor || $row === $env || '' === $row || false === $row || null === $row) {
-                    continue;
+            // Collapse the other snapshot rows by meta_id after a value
+            // re-read: rows still holding the observed value, plus rows
+            // the CAS rewrote into $env mirrors (update_user_meta's value
+            // predicate can hit several identical rows), are deleted.
+            // Racer rewrites to a third value and new inserts survive.
+            foreach ($rows as $row) {
+                if ($row['mid'] !== $anchor_mid) {
+                    fleekdash_htmxpack_delete_row_if_unchanged($row, $env);
                 }
-                \delete_user_meta($uid, FLEEKDASH_HTMXPACK_META_KEY, $row);
             }
             return true;
         }
@@ -390,6 +397,45 @@ function fleekdash_htmxpack_update(callable $mutator): bool
         \wp_cache_delete($uid, 'user_meta');
     }
     return false;
+}
+
+/**
+ * Deletes one usermeta row by meta_id, but only when it still holds the
+ * value observed in the repair snapshot (or was rewritten into the new
+ * envelope by a multi-row CAS predicate) - a racer that rewrote the row
+ * to anything else, or removed it, makes the delete a no-op.
+ *
+ * get_metadata_by_mid returns meta_value already unserialized, so the
+ * guard compares PHP values, not stored strings.
+ *
+ * @param array{mid: int, value: mixed} $row snapshot row
+ * @param array|null $env new envelope - mirror rows are deleted too
+ */
+function fleekdash_htmxpack_delete_row_if_unchanged(array $row, ?array $env = null): void
+{
+    global $wpdb;
+
+    $live = \get_metadata_by_mid('user', $row['mid']);
+    if (!$live) {
+        return;
+    }
+    $current = \maybe_unserialize($live->meta_value);
+    if ($current !== $row['value'] && (null === $env || $current !== $env)) {
+        return;
+    }
+
+    // The read above only identifies an allowed value. Keep that value in
+    // the DELETE predicate so a rewrite between the read and delete survives.
+    $deleted = $wpdb->query(
+        $wpdb->prepare(
+            "DELETE FROM {$wpdb->usermeta} WHERE umeta_id = %d AND meta_value = %s",
+            $row['mid'],
+            \maybe_serialize($current)
+        )
+    );
+    if ($deleted > 0) {
+        \wp_cache_delete((int) $live->user_id, 'user_meta');
+    }
 }
 
 /**
