@@ -1,0 +1,25 @@
+{
+  "$schema": "../../contracts/schema/fleekdash-manifest.schema.json",
+  "kind": "app",
+  "id": "htmx-pack",
+  "name": "HTMX Pack",
+  "description": "Hypermedia-first extension pack: PHP-rendered page, htmx fragments over REST, Alpine islands. Vendored assets only - no CDN, no build step.",
+  "version": "0.1.0",
+  "author": "FleekDash",
+  "author_uri": "https://fleekdash.com",
+  "icon": "code",
+  "category": "developer",
+  "integration_type": "standalone",
+  "requires": {
+    "wp": "6.5",
+    "php": "8.0",
+    "fleekdash": "2.6.10"
+  },
+  "tags": [
+    "starter",
+    "template",
+    "htmx",
+    "alpine",
+    "hypermedia"
+  ]
+}

@@ -56,6 +56,21 @@ Want a faster iteration loop? The [`fleekdash/devkit`](https://github.com/fleekd
 canvas runs your built page inside a mock FleekDash host, with no WordPress
 install needed at all.
 
+## Starter variants
+
+| | `extension-starter` (this root) | `starters/htmx-pack/` |
+|---|---|---|
+| UI stack | React + Vite bundle, FleekDash SDK over postMessage | PHP views + htmx fragments + Alpine islands |
+| Build step | `pnpm build` | none - PHP is interpreted |
+| Page served by | `dist/pages/*.html` (static file) | `admin.php?action=…` (cookie auth) |
+| Data calls | SDK MessageBus → host → WP REST | REST directly with `X-WP-Nonce` |
+| Registration | `fleekdash.json` declarative routes | imperative `Registry::register()` (needs `admin_url()`) |
+| Best for | JS-app extensions, devkit canvas loop | CRUD/admin packs, agent-generated extensions |
+
+Choose `starters/htmx-pack/` when you want hypermedia-first development:
+auditable server-rendered PHP, vendored htmx/Alpine (no CDN), and no
+toolchain. Its README documents the full pack contract.
+
 ## How the pieces fit
 
 Your UI runs **inside a FleekDash iframe** (the `component_url` on the route).

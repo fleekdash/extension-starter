@@ -88,3 +88,26 @@ if (false) {
 	 * page provisioner and data-source registry own their lifecycle.
 	 */
 }
+
+if (false) {
+	/**
+	 * Vendored frontend libraries for hypermedia-first packs (htmx +
+	 * Alpine, no CDN). Views rendering text/html outside wp_head emit
+	 * script tags through this class instead of wp_enqueue_script.
+	 * Available on the host since FleekDash 2.6.10 (2.6.8/2.6.9 shipped
+	 * without it) - gate with class_exists() and declare
+	 * `requires.fleekdash` accordingly.
+	 *
+	 * Real calls:
+	 *
+	 *     FleekDash\Extension\ExtensionAssets::renderScriptTags( ['htmx', 'alpinejs'] );
+	 *     FleekDash\Extension\ExtensionAssets::url( 'htmx' );
+	 *
+	 * Handles: ExtensionAssets::HTMX ('htmx'), ExtensionAssets::ALPINE
+	 * ('alpinejs'); pinned versions live in ExtensionAssets::VERSIONS.
+	 * scriptTag($handle, $attrs) merges caller attrs over handle defaults
+	 * (Alpine defaults to defer) filtered by an allowlist - src, on* and
+	 * unknown names are dropped. scriptTags()/renderScriptTags() take a
+	 * list of handles and skip unknown ones.
+	 */
+}
